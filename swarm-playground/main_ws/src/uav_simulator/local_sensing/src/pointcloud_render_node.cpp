@@ -79,9 +79,9 @@ vector<float> _pointRadiusSquaredDistance;
 
 void rcvGlobalPointCloudCallBack(
     const sensor_msgs::PointCloud2& pointcloud_map) {
-  if (has_global_map) return;
+  // if (has_global_map) return;
 
-  ROS_WARN("Global Pointcloud received..");
+  // ROS_WARN("Global Pointcloud received..");
 
   pcl::PointCloud<pcl::PointXYZ> cloud_input;
   pcl::fromROSMsg(pointcloud_map, cloud_input);
@@ -146,7 +146,8 @@ void renderSensedPoints(const ros::TimerEvent& event) {
   _local_map.is_dense = true;
 
   pcl::toROSMsg(_local_map, _local_map_pcd);
-  _local_map_pcd.header.frame_id = "map";
+  _local_map_pcd.header.frame_id = "world";
+  // _local_map_pcd.header.frame_id = "map";
 
   pub_cloud.publish(_local_map_pcd);
 }
@@ -169,7 +170,8 @@ int main(int argc, char** argv) {
   nh.getParam("map/z_size", _z_size);
 
   // subscribe point cloud
-  global_map_sub = nh.subscribe("global_map", 1, rcvGlobalPointCloudCallBack);
+  global_map_sub = nh.subscribe("global_map", 3, rcvGlobalPointCloudCallBack);
+  // global_map_sub = nh.subscribe("global_map", 1, rcvGlobalPointCloudCallBack);
   local_map_sub = nh.subscribe("local_map", 1, rcvLocalPointCloudCallBack);
   odom_sub = nh.subscribe("odometry", 50, rcvOdometryCallbck);
 
@@ -192,7 +194,8 @@ int main(int argc, char** argv) {
   _GLY_SIZE = (int)(_y_size * _inv_resolution);
   _GLZ_SIZE = (int)(_z_size * _inv_resolution);
 
-  ros::Rate rate(100);
+  ros::Rate rate(60);
+  // ros::Rate rate(100);
   bool status = ros::ok();
   while (status) {
     ros::spinOnce();

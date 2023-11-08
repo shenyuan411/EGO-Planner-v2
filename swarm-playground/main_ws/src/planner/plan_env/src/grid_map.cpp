@@ -355,7 +355,8 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
   if (isnan(md_.camera_pos_(0)) || isnan(md_.camera_pos_(1)) || isnan(md_.camera_pos_(2)))
     return;
 
-  moveRingBuffer();
+  moveRingBuffer();// 根据相机当前的位置调整buffer中心参数等
+  clearBuffer(6, mp_.local_update_range3i_(0));// 尝试加入obstacle elimination
 
   pcl::PointXYZ pt;
   Eigen::Vector3d p3d, p3d_inf;
@@ -364,13 +365,13 @@ void GridMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr &img)
     pt = latest_cloud.points[i];
     p3d(0) = pt.x, p3d(1) = pt.y, p3d(2) = pt.z;
     if (p3d.array().isNaN().sum())
-      continue;
+      continue;// 任意一个分量为NaN，直接返回
 
     if (isInBuf(p3d))
     {
       /* inflate the point */
       Eigen::Vector3i idx = pos2GlobalIdx(p3d);
-      int buf_id = globalIdx2BufIdx(idx);
+      int buf_id = globalIdx2BufIdx(idx);// 根据调整完的buffer中心的位置换算更新的buf索引
       int inf_buf_id = globalIdx2InfBufIdx(idx);
       md_.occupancy_buffer_[buf_id] = mp_.clamp_max_log_;
 
@@ -402,13 +403,13 @@ void GridMap::moveRingBuffer()
     initMapBoundary();
 
   Eigen::Vector3i center_new = pos2GlobalIdx(md_.camera_pos_);
-  Eigen::Vector3i ringbuffer_lowbound3i_new = center_new - mp_.local_update_range3i_;
+  Eigen::Vector3i ringbuffer_lowbound3i_new = center_new - mp_.local_update_range3i_;// 这个i表示索引，d表示实际的长度
   Eigen::Vector3d ringbuffer_lowbound3d_new = ringbuffer_lowbound3i_new.cast<double>() * mp_.resolution_;
   Eigen::Vector3i ringbuffer_upbound3i_new = center_new + mp_.local_update_range3i_;
   Eigen::Vector3d ringbuffer_upbound3d_new = ringbuffer_upbound3i_new.cast<double>() * mp_.resolution_;
   ringbuffer_upbound3i_new -= Eigen::Vector3i(1, 1, 1);
 
-  const Eigen::Vector3i inf_grid3i(mp_.inf_grid_, mp_.inf_grid_, mp_.inf_grid_);
+  const Eigen::Vector3i inf_grid3i(mp_.inf_grid_, mp_.inf_grid_, mp_.inf_grid_);// 这个inf貌似是膨胀？
   const Eigen::Vector3d inf_grid3d = inf_grid3i.array().cast<double>() * mp_.resolution_;
   Eigen::Vector3i ringbuffer_inf_lowbound3i_new = ringbuffer_lowbound3i_new - inf_grid3i;
   Eigen::Vector3d ringbuffer_inf_lowbound3d_new = ringbuffer_lowbound3d_new - inf_grid3d;
